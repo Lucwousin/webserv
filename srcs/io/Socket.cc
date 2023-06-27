@@ -24,6 +24,7 @@ Socket::Socket() {
 }
 
 Socket::~Socket() {
+  Log::debug('[', fd_, "]\tSocket destroyed\n");
   close(fd_);
 }
 
@@ -120,4 +121,6 @@ void Socket::shutdown(int channel) {
     in_open_ = false;
   if (channel == SHUT_RDWR || channel == SHUT_WR)
     out_open_ = false;
+  Log::debug('[', fd_, "]\tin: ", in_open_ ? "open" : "close",
+             "\tout: ", out_open_ ? "open\n" : "close\n");
 }

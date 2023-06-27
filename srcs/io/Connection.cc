@@ -24,7 +24,7 @@ void Connection::handle(EventQueue::event_t& event) {
   if (EventQueue::isWrite(event)) {
     out_status = WS::OK;
     handleOut(out_status);
-    writing_ = (out_status == WS::FULL);
+    writing_ = (out_status == WS::FULL) || !oqueue_.empty();
     if (should_close_ && !writing_)
       socket_.shutdown(SHUT_WR);
   }
@@ -83,6 +83,7 @@ void Connection::addTask(ITask* task) {
 }
 
 void Connection::addTask(OTask* task) {
+  writing_ = true;
   if (oqueue_.empty())
     event_queue_.add(socket_.get_fd(), EventQueue::out);
   oqueue_.push_back(std::unique_ptr<OTask>(task));
@@ -93,10 +94,4 @@ Socket& Connection::getSocket() {
 }
 ConnectionBuffer& Connection::getBuffer() {
   return buffer_;
-}
-
-void Connection::close() {
-  socket_.shutdown(SHUT_RD);
-  if (!writing_)
-    socket_.shutdown(SHUT_WR);
 }

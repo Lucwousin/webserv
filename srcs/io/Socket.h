@@ -23,7 +23,6 @@ class Socket {
 
   int fd_;
   bool in_open_ = true;
-  bool out_open_ = true;
 
  public:
   Socket();

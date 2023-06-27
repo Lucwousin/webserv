@@ -23,7 +23,7 @@ class Connection {
   Request request_;
 
   bool writing_ = false;
-  bool should_close_ = false;
+  bool keep_alive_ = true;
 
  public:
   Connection(int fd, EventQueue& event_queue, BufferPool<>& buf_mgr);
@@ -39,6 +39,8 @@ class Connection {
   void addTask(ITask* task);
   void addTask(OTask* task);
 
-  inline bool shouldClose() const { return should_close_ && !writing_ && oqueue_.empty(); }
+  inline void setKeepAlive(bool keepAlive) { keep_alive_ = keepAlive; }
+  inline bool keepAlive() const { return keep_alive_; };
+  inline bool shouldClose() const { return should_close_; }
   void close();
 };

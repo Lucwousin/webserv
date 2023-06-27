@@ -15,6 +15,7 @@ class ReadRequest : public ITask {
   int error_ = 0;
   size_t req_len_ = 0;
   std::string prev_key_;
+  bool should_close_ = false;
 
   bool use_line(Connection& connection, std::string& line);
   bool handle_msg(Connection&, std::string& line);

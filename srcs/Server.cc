@@ -37,8 +37,15 @@ void Server::loop() {
       auto found_connection = connections_.find(ev_fd);
       if (found_connection == connections_.end())
         continue;  // This should be impossible
-      if (EventQueue::isHangup(ev) || EventQueue::isError(ev)) {
-        Log::info('[', ev_fd, "]\tClosed connection\n");
+      if (EventQueue::isHangup(ev)) {
+        Log::info('[', ev_fd, "]\tClosed incoming stream\n");
+        found_connection->second.close();
+        if (!EventQueue::isRead(ev) && !EventQueue::isWrite(ev)) {
+          connections_.erase(found_connection);
+          continue;
+        }
+      } else if (EventQueue::isError(ev)) {
+        Log::warn('[', ev_fd, "]\tError event?!?!\n");
         connections_.erase(found_connection);
         continue;
       }
