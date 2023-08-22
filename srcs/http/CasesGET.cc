@@ -1,17 +1,18 @@
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+
 #include <exception>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+
 #include "Cases.h"
-#include "cgi/Cgi.h"
 #include "ErrorResponse.h"
+#include "cgi/Cgi.h"
 
 using namespace get;
 
-static void st_prepend_cwd(std::string& str)
-{
+static void st_prepend_cwd(std::string& str) {
   char* cwd;
   cwd = getcwd(NULL, 0);
   if (cwd == NULL) {
@@ -23,19 +24,17 @@ static void st_prepend_cwd(std::string& str)
 
 // maybe make this a member of response class?
 // function to read file into body of response passed as param
-size_t makeBody(Response& res, const char* type, const std::string& path)
-{
+size_t makeBody(Response& res, const char* type, const std::string& path) {
   uint8_t openmode = 0;
   if (type == NULL) {
-    openmode &= std::ios::in; 
-  }
-  else {
+    openmode &= std::ios::in;
+  } else {
     std::string type_str(type);
     openmode &= type_str.find("text") == std::string::npos ? std::ios::in : std::ios::binary;
   }
   std::ifstream file(path, openmode);
   if (!file.is_open()) {
-    throw (ErrorResponse(500));
+    throw(ErrorResponse(500));
   }
   std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
   file.close();
@@ -43,9 +42,8 @@ size_t makeBody(Response& res, const char* type, const std::string& path)
   char* body;
   try {
     body = new char[body_size + 1];
-  }
-  catch (std::exception&) {
-    throw (ErrorResponse(500));
+  } catch (std::exception&) {
+    throw(ErrorResponse(500));
   }
   str.copy(body, body_size);
   body[body_size] = '\0';
@@ -53,21 +51,18 @@ size_t makeBody(Response& res, const char* type, const std::string& path)
   return (body_size);
 }
 
-bool  CaseRedirect::test(Request& req) const
-{
+bool CaseRedirect::test(Request& req) const {
   // need config to check this
-  (void) req;
+  (void)req;
   return (false);
 }
 
-Response  CaseRedirect::act(Request& req) const
-{
-  (void) req;
+Response CaseRedirect::act(Request& req) const {
+  (void)req;
   return (Response());
 }
 
-bool  CaseCGI::test(Request& req) const
-{
+bool CaseCGI::test(Request& req) const {
   // need config for this
   // for now just check if it ends in .cgi
   const std::string cgi_ext = ".cgi";
@@ -84,8 +79,7 @@ bool  CaseCGI::test(Request& req) const
   return (s.st_mode & S_IFREG);
 }
 
-Response  CaseCGI::act(Request& req) const
-{
+Response CaseCGI::act(Request& req) const {
   Response res;
   Cgi cgi(req);
   std::string result = cgi.execute();
@@ -104,27 +98,24 @@ Response  CaseCGI::act(Request& req) const
   }
   // invalid response (not compliant with CGI spec)
   else {
-    throw (ErrorResponse(500));
+    throw(ErrorResponse(500));
   }
   return (res);
 }
 
-bool  CaseNoFile::test(Request& req) const
-{
+bool CaseNoFile::test(Request& req) const {
   struct stat s;
   std::string path = req.getPath();
   st_prepend_cwd(path);
   return (stat(path.c_str(), &s));
 }
 
-Response  CaseNoFile::act(Request& req) const
-{
-  (void) req;
-  throw (ErrorResponse(404));
+Response CaseNoFile::act(Request& req) const {
+  (void)req;
+  throw(ErrorResponse(404));
 }
 
-bool  CaseFile::test(Request& req) const
-{
+bool CaseFile::test(Request& req) const {
   struct stat s;
   std::string path = req.getPath();
   st_prepend_cwd(path);
@@ -132,8 +123,7 @@ bool  CaseFile::test(Request& req) const
   return (s.st_mode & S_IFREG);
 }
 
-Response  CaseFile::act(Request& req) const
-{
+Response CaseFile::act(Request& req) const {
   Response res;
   std::string path = req.getPath();
   st_prepend_cwd(path);
@@ -145,8 +135,7 @@ Response  CaseFile::act(Request& req) const
   return (res);
 }
 
-bool  CaseDir::test(Request& req) const
-{
+bool CaseDir::test(Request& req) const {
   struct stat s;
   std::string path = req.getPath();
   st_prepend_cwd(path);
@@ -154,8 +143,7 @@ bool  CaseDir::test(Request& req) const
   return (s.st_mode & S_IFDIR);
 }
 
-Response  CaseDir::act(Request& req) const
-{
+Response CaseDir::act(Request& req) const {
   Response res;
   struct stat s;
   std::string path = req.getPath();
@@ -163,8 +151,7 @@ Response  CaseDir::act(Request& req) const
   path.append("index.html");     // or other file specified in config
   if (stat(path.c_str(), &s)) {  // no file, list directory if enabled in config
     return ErrorResponse(403);
-  }
-  else {                         // file exists, serve it
+  } else {  // file exists, serve it
     const char* type = req.getHeader("Content-Type");
     size_t body_size = makeBody(res, type, path);
     res.addHeader("Server", "SuperWebserv10K/0.9.1 (Unix)");
@@ -175,41 +162,33 @@ Response  CaseDir::act(Request& req) const
 }
 
 // if we hit this case it must be a failure
-bool  CaseFail::test(Request& req) const
-{
-  (void) req;
+bool CaseFail::test(Request& req) const {
+  (void)req;
   return (true);
 }
 
-Response  CaseFail::act(Request& req) const
-{
-  (void) req;
+Response CaseFail::act(Request& req) const {
+  (void)req;
   std::runtime_error("400 invalid request");
   return (Response());
 }
 
 // make it static or some singleton shit
-CasesGET::CasesGET()
-{
-  try
-  {
+CasesGET::CasesGET() {
+  try {
     this->cases_.push_back(new CaseRedirect());
     this->cases_.push_back(new CaseCGI());
     this->cases_.push_back(new CaseNoFile());
     this->cases_.push_back(new CaseFile());
     this->cases_.push_back(new CaseDir());
     this->cases_.push_back(new CaseFail());
-  }
-  catch (std::exception&)
-  {
-     throw (ErrorResponse(500));
+  } catch (std::exception&) {
+    throw(ErrorResponse(500));
   }
 }
 
-CasesGET::~CasesGET()
-{
-  while (!this->cases_.empty())
-  {
+CasesGET::~CasesGET() {
+  while (!this->cases_.empty()) {
     delete (this->cases_.back());
     this->cases_.pop_back();
   }

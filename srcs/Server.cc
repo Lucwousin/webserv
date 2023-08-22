@@ -1,5 +1,6 @@
-#include <algorithm>
 #include "Server.h"
+
+#include <algorithm>
 
 #include "io/IOException.h"
 #include "util/Log.h"
@@ -36,7 +37,6 @@ void Server::purge_connections() {
     if (connection.second.stale(now_secs))
       connection.second.timeout();
 }
-
 
 void Server::handle_connection(EventQueue::event_t& event) {
   const int fd = EventQueue::getFileDes(event);

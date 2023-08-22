@@ -1,6 +1,7 @@
 #pragma once
-#include "IOTask.h"
 #include <map>
+
+#include "IOTask.h"
 
 class ReadRequest : public ITask {
  private:
@@ -27,8 +28,7 @@ class ReadRequest : public ITask {
   void onDone(Connection& connection) final;
 
  private:
-
-  using header_lambda = int(*)(ReadRequest&, const std::string&, Connection&);
-  using header_lambda_map = std::multimap<std::string, header_lambda> ;
+  using header_lambda = int (*)(ReadRequest&, const std::string&, Connection&);
+  using header_lambda_map = std::multimap<std::string, header_lambda>;
   static const header_lambda_map hhooks_;
 };

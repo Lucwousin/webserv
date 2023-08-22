@@ -34,6 +34,6 @@ static inline std::string get_date_header() {
   char out[date_header_len] = {};
   time_t time = std::time(nullptr);
   std::strftime(out, date_header_len, "date: %a, %d %b %Y %T %Z\r\n", gmtime(&time));
-  return { out, date_header_len };
+  return {out, date_header_len};
 }
 }  // namespace WS

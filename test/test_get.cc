@@ -1,7 +1,9 @@
-#include "/Users/mbatstra/.brew/Cellar/criterion/2.4.1_1/include/criterion/criterion.h"
-#include "../srcs/http/RequestHandler.h"
 #include <fcntl.h>
+
 #include <iostream>
+
+#include "../srcs/http/RequestHandler.h"
+#include "/Users/mbatstra/.brew/Cellar/criterion/2.4.1_1/include/criterion/criterion.h"
 
 Test(RequestHandler, get_root) {
   cr_assert(true, "Hello Test\n");
@@ -14,6 +16,6 @@ Test(RequestHandler, get_index) {
     std::runtime_error("can't open file");
   }
   rh.readRequest(fd);
-  rh.execRequest(); 
+  rh.execRequest();
   std::cout << rh.getResponse() << std::endl;
 }

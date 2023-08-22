@@ -1,12 +1,14 @@
-#include <array>
-#include <unistd.h>
-#include <iostream>
 #include "Cgi.h"
+
+#include <unistd.h>
+
+#include <array>
+#include <iostream>
+
 #include "http/ErrorResponse.h"
 #include "http/RequestHandler.h"
 
-static const std::string st_find_header_value(const std::string& msg, const std::string& key)
-{
+static const std::string st_find_header_value(const std::string& msg, const std::string& key) {
   size_t start = msg.find(key) + key.length();
   size_t i = 0;
   while (!std::isspace(msg[start + i])) {
@@ -15,8 +17,7 @@ static const std::string st_find_header_value(const std::string& msg, const std:
   return (msg.substr(start, i));
 }
 
-static void st_del_arr(char** arr)
-{
+static void st_del_arr(char** arr) {
   size_t i = 0;
   while (arr[i] != NULL) {
     delete[] arr[i];
@@ -27,32 +28,31 @@ static void st_del_arr(char** arr)
 
 // make environment variables as specified in CGI RFC
 // some of them are missing due to not being required by subject
-static char** st_make_env(Request& req)
-{
+static char** st_make_env(Request& req) {
   char** env;
   std::array<std::string, 16> arr = {
-    std::string("AUTH_TYPE="),
-    std::string("CONTENT_LENGTH=") + 
-      std::string(req.getHeader("Content-Length") ? req.getHeader("Content-Length") : ""),
-    std::string("CONTENT_TYPE=") + 
-      std::string(req.getHeader("Content-Type") ? req.getHeader("Content-Type") : ""),
-    std::string("GATEWAY_INTERFACE=CGI/1.1"),
-    std::string("PATH_INFO=") + std::string(req.getPath().substr(0, req.getPath().find(".cgi") + 4)),
-    std::string("PATH_TRANSLATED="), // root path_info based on confi
-    std::string("QUERY_STRING=") + ((req.getUri().find('?') == std::string::npos) ? 
-      std::string("") : std::string(req.getUri().substr(req.getUri().find('?') + 1))),
-    std::string("REMOTE_ADDR=127.0.0.1"), // for now just hardcode localhost, ask lucas to pass the real thing
-    std::string("REMOTE_HOST=") + 
-      std::string(req.getHeader("Host") ? st_find_header_value(req.getHeader("Host"), "Host: ") : ""),
-    std::string("REMOTE_USER="), // not sure that we need this as we're not doing authentication?
-    std::string("REQUEST_METHOD=") + 
-      std::string(req.getMethod() == Request::GET ? "GET" : "POST"),
-    std::string("SCRIPT_NAME=") + std::string(req.getPath().substr(0, req.getPath().find(".cgi") + 4)),
-    std::string("SERVER_NAME=SuperWebserv10K/0.9.1 (Unix)"),
-    std::string("SERVER_PORT=6969"),
-    std::string("SERVER_PROTOCOL=HTTP/1.1"),
-    std::string("SERVER_SOFTWARE=SuperWebserv10K/0.9.1 (Unix)")
-  };
+      std::string("AUTH_TYPE="),
+      std::string("CONTENT_LENGTH=") +
+          std::string(req.getHeader("Content-Length") ? req.getHeader("Content-Length") : ""),
+      std::string("CONTENT_TYPE=") +
+          std::string(req.getHeader("Content-Type") ? req.getHeader("Content-Type") : ""),
+      std::string("GATEWAY_INTERFACE=CGI/1.1"),
+      std::string("PATH_INFO=") + std::string(req.getPath().substr(0, req.getPath().find(".cgi") + 4)),
+      std::string("PATH_TRANSLATED="),  // root path_info based on confi
+      std::string("QUERY_STRING=") + ((req.getUri().find('?') == std::string::npos)
+                                          ? std::string("")
+                                          : std::string(req.getUri().substr(req.getUri().find('?') + 1))),
+      std::string(
+          "REMOTE_ADDR=127.0.0.1"),  // for now just hardcode localhost, ask lucas to pass the real thing
+      std::string("REMOTE_HOST=") +
+          std::string(req.getHeader("Host") ? st_find_header_value(req.getHeader("Host"), "Host: ") : ""),
+      std::string("REMOTE_USER="),  // not sure that we need this as we're not doing authentication?
+      std::string("REQUEST_METHOD=") + std::string(req.getMethod() == Request::GET ? "GET" : "POST"),
+      std::string("SCRIPT_NAME=") + std::string(req.getPath().substr(0, req.getPath().find(".cgi") + 4)),
+      std::string("SERVER_NAME=SuperWebserv10K/0.9.1 (Unix)"),
+      std::string("SERVER_PORT=6969"),
+      std::string("SERVER_PROTOCOL=HTTP/1.1"),
+      std::string("SERVER_SOFTWARE=SuperWebserv10K/0.9.1 (Unix)")};
   try {
     env = new char*[arr.size() + 1];
     for (size_t i = 0; i <= arr.size(); i++) {
@@ -63,22 +63,20 @@ static char** st_make_env(Request& req)
       arr[i].copy(env[i], arr[i].length());
       env[i][arr[i].length()] = '\0';
     }
-  }
-  catch (std::exception&) {
+  } catch (std::exception&) {
     st_del_arr(env);
-    throw (ErrorResponse(500));
+    throw(ErrorResponse(500));
   }
   return (env);
 }
 
-Cgi::Cgi(Request& req) :
-    body_(req.getBody()),
-    path_("." + req.getPath().substr(0, req.getPath().find(".cgi") + 4)), // fix getPath() !!! (or confirm that it's working)
-    envp_(st_make_env(req))
-{}
+Cgi::Cgi(Request& req)
+    : body_(req.getBody()),
+      path_("." + req.getPath().substr(0, req.getPath().find(".cgi") +
+                                              4)),  // fix getPath() !!! (or confirm that it's working)
+      envp_(st_make_env(req)) {}
 
-Cgi::~Cgi()
-{
+Cgi::~Cgi() {
   st_del_arr(this->envp_);
 }
 
@@ -86,8 +84,7 @@ Cgi::~Cgi()
 // execute script
 // write output of script back to parent
 // make sure to test for leaking fd's!!!
-void Cgi::exec_child()
-{
+void Cgi::exec_child() {
   if (this->body_.length() > 0) {
     dup2(this->pipe_in_[0], STDIN_FILENO);
     close(this->pipe_in_[0]);
@@ -98,32 +95,34 @@ void Cgi::exec_child()
   close(this->pipe_out_[1]);
   execve(this->path_.c_str(), NULL, this->envp_);
   // if we get here execve failed
-  throw (ErrorResponse(500)); // this should be propagated to parent
+  throw(ErrorResponse(500));  // this should be propagated to parent
 }
 
 // write request body to child's stdin
 // wait for child then read child's stdout
 // these read/write ops should go through epoll?!
-std::string Cgi::exec_parent(int pid)
-{
+std::string Cgi::exec_parent(int pid) {
   if (this->body_.length() > 0) {
     close(this->pipe_in_[0]);
-    if (write(this->pipe_in_[1], this->body_.c_str(), this->body_.length()) == -1) { // this won't work for cte
-      throw (ErrorResponse(500));
+    if (write(this->pipe_in_[1], this->body_.c_str(), this->body_.length()) ==
+        -1) {  // this won't work for cte
+      throw(ErrorResponse(500));
     }
     close(this->pipe_in_[1]);
   }
   close(this->pipe_out_[1]);
   waitpid(pid, NULL, 0);
-  const size_t buf_size = 64; // what would be optimal here?
+  const size_t buf_size = 64;  // what would be optimal here?
   char buf[buf_size];
-  for (size_t i = 0; i < buf_size; i++) { buf[i] = '\0'; }
+  for (size_t i = 0; i < buf_size; i++) {
+    buf[i] = '\0';
+  }
   std::string result;
   int bytes;
   do {
     bytes = read(this->pipe_out_[0], buf, buf_size - 1);
     if (bytes < 0) {
-      throw (ErrorResponse(500));
+      throw(ErrorResponse(500));
     }
     buf[bytes] = '\0';
     result.append(buf);
@@ -132,24 +131,23 @@ std::string Cgi::exec_parent(int pid)
   return (result);
 }
 
-std::string Cgi::execute()
-{
+std::string Cgi::execute() {
   std::cout << this->path_ << std::endl;
   // open pipes, input pipe is only necessary if there is a body to write
   // both stdin are redirected the the other process stdout
   if (this->body_.length() > 0) {
     if (pipe(this->pipe_in_) == -1) {
-      throw (ErrorResponse(500));
+      throw(ErrorResponse(500));
     }
   }
   if (pipe(this->pipe_out_) == -1) {
-    throw (ErrorResponse(500));
+    throw(ErrorResponse(500));
   }
 
   // fork and run the parent and child process in separate functions
   int pid = fork();
   if (pid < 0) {
-    throw (ErrorResponse(500));
+    throw(ErrorResponse(500));
   }
   if (pid == 0) {
     exec_child();
@@ -159,25 +157,23 @@ std::string Cgi::execute()
 }
 
 // function to process raw cgi document response into http response
-void Cgi::makeDocumentResponse(const std::string& raw, Response& res)
-{
+void Cgi::makeDocumentResponse(const std::string& raw, Response& res) {
   size_t body_begin = raw.find("\r\n");
   // size_t body_begin = raw.find("\n\n");
-  if (body_begin == std::string::npos) { // not compliant with rfc
-    throw (ErrorResponse(500));
+  if (body_begin == std::string::npos) {  // not compliant with rfc
+    throw(ErrorResponse(500));
   }
   body_begin += 2;
   char* dup;
   try {
     dup = new char[raw.length() - body_begin];
-  }
-  catch (std::exception&) {
-    throw (ErrorResponse(500));
+  } catch (std::exception&) {
+    throw(ErrorResponse(500));
   }
   raw.copy(dup, raw.length(), body_begin);
   res.setBody(dup, raw.length() - body_begin);
   size_t substr_start = raw.find("Content-Type: ") + std::string("Content-Type: ").length();
-  size_t substr_len = raw.find(";", substr_start) - substr_start; // spec does not specify ";" as delimiter?
+  size_t substr_len = raw.find(";", substr_start) - substr_start;  // spec does not specify ";" as delimiter?
   std::string content_type = raw.substr(substr_start, substr_len);
   res.addHeader("Server", "SuperWebserv10K/0.9.1 (Unix)");
   res.addHeader("Content-Length", std::to_string(raw.length() - body_begin));
@@ -187,8 +183,7 @@ void Cgi::makeDocumentResponse(const std::string& raw, Response& res)
 
 // function to process raw cgi local redirect response into http response
 // this function has not been tested at all!!!
-void Cgi::makeLocalRedirResponse(const std::string& raw, Response& res, Request& req)
-{
+void Cgi::makeLocalRedirResponse(const std::string& raw, Response& res, Request& req) {
   req.setUri(st_find_header_value(raw, "Location: "));
   RequestHandler rh(req);
   rh.execRequest();
@@ -196,8 +191,7 @@ void Cgi::makeLocalRedirResponse(const std::string& raw, Response& res, Request&
 }
 
 // function to process raw cgi client redirect response into http response
-void Cgi::makeClientRedirResponse(const std::string& raw, Response& res)
-{
+void Cgi::makeClientRedirResponse(const std::string& raw, Response& res) {
   res.setMessage(302);
   res.addHeader("Location", st_find_header_value(raw, "Location: "));
   res.addHeader("Server", "SuperWebserv10K/0.9.1 (Unix)");
@@ -212,9 +206,8 @@ void Cgi::makeClientRedirResponse(const std::string& raw, Response& res)
   char* dup;
   try {
     dup = new char[body.length() + 1];
-  }
-  catch (std::exception&) {
-    throw (ErrorResponse(500));
+  } catch (std::exception&) {
+    throw(ErrorResponse(500));
   }
   body.copy(dup, body.length());
   dup[body.length()] = '\0';

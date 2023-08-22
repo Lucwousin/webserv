@@ -1,12 +1,13 @@
 #pragma once
 
-#include <list>
 #include <array>
 #include <cstdint>
+#include <list>
 
 #include "util/Log.h"
 
-template<size_t size_ = 8192> class BufferPool {
+template <size_t size_ = 8192>
+class BufferPool {
  public:
   BufferPool() = default;
   ~BufferPool() = default;
@@ -32,11 +33,10 @@ template<size_t size_ = 8192> class BufferPool {
 
    public:
     explicit Buf(std::list<buf_t>& cart_return)
-      : buf_return_(cart_return), data_(std::move(cart_return.front())) {
+        : buf_return_(cart_return), data_(std::move(cart_return.front())) {
       cart_return.pop_front();
     };
-    Buf(Buf&& other) noexcept
-      : buf_return_(other.buf_return_), data_(std::move(other.data_)) {
+    Buf(Buf&& other) noexcept : buf_return_(other.buf_return_), data_(std::move(other.data_)) {
       other.valid_ = false;
     }
     ~Buf() {
@@ -48,8 +48,7 @@ template<size_t size_ = 8192> class BufferPool {
   };
 };
 
-
-template<size_t size_>
+template <size_t size_>
 typename BufferPool<size_>::Buf BufferPool<size_>::getBuffer() {
   if (buffers_.empty()) {
     buffers_.push_front(buf_t());
@@ -58,17 +57,23 @@ typename BufferPool<size_>::Buf BufferPool<size_>::getBuffer() {
   return Buf(buffers_);
 }
 
-template<size_t size_>
-inline size_t BufferPool<size_>::size() const { return size_; }
+template <size_t size_>
+inline size_t BufferPool<size_>::size() const {
+  return size_;
+}
 
-template<size_t size_>
+template <size_t size_>
 void BufferPool<size_>::log_info() const {
   if (Log::log_level != Log::TRACE)
     return;
   size_t used_bufs = buffer_count_ - buffers_.size();
-  float total_mb = (float) (size_ * buffer_count_) / (1024.f * 1024.f);
-  float used_mb = (float) (size_ * used_bufs) / (1024.f * 1024.f);
-  Log::trace("Buffer pool: "
-             "Alloc: ", buffer_count_, " (", total_mb, "M)"
-             "Used: ", used_bufs, " (", used_mb, "M)", '\n');
+  float total_mb = (float)(size_ * buffer_count_) / (1024.f * 1024.f);
+  float used_mb = (float)(size_ * used_bufs) / (1024.f * 1024.f);
+  Log::trace(
+      "Buffer pool: "
+      "Alloc: ",
+      buffer_count_, " (", total_mb,
+      "M)"
+      "Used: ",
+      used_bufs, " (", used_mb, "M)", '\n');
 }

@@ -32,7 +32,7 @@ void EventQueue::del(int fd, filt_t dir) {
 
 EventQueue::event_t& EventQueue::getNext(Server& server) {
   while (event_index_ >= event_count_) {
-    server.purge_connections(); // Purge every time we collect new events from the queue
+    server.purge_connections();  // Purge every time we collect new events from the queue
     event_index_ = 0;
     Platform::wait(*this);
     if (event_count_ == -1)

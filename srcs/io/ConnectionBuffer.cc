@@ -74,7 +74,8 @@ std::string ConnectionBuffer::get_str(size_t len) {
     auto& buf = i_bufs_.front().getData();
     size_t to_get = std::min(len, size_ - i_offset_);
     str.replace(pos, to_get, &buf[i_offset_], to_get);
-    pos += to_get; len -= to_get;
+    pos += to_get;
+    len -= to_get;
     i_offset_ += to_get;
     if (i_offset_ >= size_)
       pop_inbuf();
