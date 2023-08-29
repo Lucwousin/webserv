@@ -9,8 +9,8 @@ class Response : public Message {
  public:
   Response();
   ~Response() override;
-  Response(const Response& other);
-  Response& operator=(const Response& rhs);
+  Response(Response&& other) noexcept;
+  Response& operator=(Response&& rhs) noexcept;
 
   void setMessage(int status);
   void setKeepAlive(uint32_t timeout, uint32_t max_requests);

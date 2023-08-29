@@ -1,7 +1,8 @@
 #include "SendResponse.h"
 
-SendResponse::SendResponse(const Response& response)
-    : response_(response), header_(response_.getHeaders().begin()) {}
+SendResponse::SendResponse(Response&& response)
+  : response_(std::forward<Response>(response)),
+    header_(response_.getHeaders().begin()) {}
 
 bool SendResponse::operator()(Connection& connection) {
   while (!connection.getBuffer().needWrite()) {
@@ -24,7 +25,7 @@ bool SendResponse::operator()(Connection& connection) {
         state_ = BODY;
         break;
       case BODY:
-        connection.getBuffer() << response_.getBody();
+        connection.getBuffer() << std::string_view(response_.getBody().get(), response_.getBodySize());
         return true;
     }
   }

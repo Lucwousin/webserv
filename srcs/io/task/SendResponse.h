@@ -12,13 +12,23 @@ class SendResponse : public OTask {
     BODY
   };
 
-  typedef Message::header_t::const_iterator header_iter_t;
+  typedef Message::headers_t::const_iterator header_iter_t;
   const Response response_;
   State state_ = MSG;
   header_iter_t header_;
 
+ protected:
+  virtual std::unique_ptr<OTask> getBodyTask() const = 0;
  public:
-  explicit SendResponse(const Response& response);
+  explicit SendResponse(Response&& response);
   bool operator()(Connection& connection) override;
   void onDone(Connection& connection) final;
+};
+
+class SendErrorResponse : public SendResponse {
+ public:
+  explicit SendErrorResponse(int status) noexcept
+    : SendResponse(ErrorResponse(status)){
+
+  }
 };

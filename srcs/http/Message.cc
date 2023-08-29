@@ -1,37 +1,32 @@
 #include "Message.h"
+#include "Header.h"
 
-#include <cstring>
 #include <ostream>
-
-Message::Message() : body_(), body_size_() {}
-
-Message::~Message() {
-  delete[] body_;
-}
-
-Message::Message(const Message& other) : body_(), body_size_() {
-  *this = other;
-}
-
-Message& Message::operator=(const Message& rhs) {
-  if (this == &rhs)
-    return *this;
-  message_ = rhs.message_;
-  headers_ = rhs.headers_;
-  body_size_ = rhs.body_size_;
-  delete[] body_;
-  body_ = (rhs.body_ == nullptr) ? nullptr : new char[body_size_];
-  if (body_)
-    std::memcpy(body_, rhs.body_, body_size_);
-  return *this;
-}
+#include <cstring>
 
 const std::string& Message::getMessage() const {
   return message_;
 }
 
-const std::vector<std::string>& Message::getHeaders() const {
+const Message::headers_t& Message::getHeaders() const {
   return headers_;
+}
+
+const Message::body_t& Message::getBody() const {
+  return body_;
+}
+
+size_t Message::getBodySize() const {
+  return body_size_;
+}
+
+bool Message::hasBody() const {
+  return body_size_ != no_body_magic;
+}
+
+void Message::setBody(std::unique_ptr<const char[]>&& body, size_t body_size) {
+  body_ = std::move(body);
+  body_size_ = body_size;
 }
 
 void Message::addHeader(const std::string& kv_pair) {
@@ -42,18 +37,15 @@ void Message::addHeader(const std::string& key, const std::string& val) {
   headers_.push_back(key + ": " + val + "\r\n");
 }
 
-std::string Message::getBody() const {
-  return {body_, body_size_};
-}
-
-size_t Message::getBodySize() const {
-  return body_size_;
-}
-
-void Message::setBody(char* body, size_t body_size) {
-  delete[] body_;
-  body_ = body;
-  body_size_ = body_size;
+std::string_view Message::getHeader(const std::string& key) const {
+  // rfind searches the string for the last occurrence of its arguments.
+  // When pos is specified, the search only includes sequences of characters
+  // that begin at or before position pos, ignoring any possible match beginning after pos.
+  // In other words, rfind(str, 0) == startswith (shoutout Ludovic Aubert on stackoverflow)
+  for (const auto& elem : headers_)
+    if (Header::matches(key, elem))
+      return elem;
+  return {};
 }
 
 std::ostream& Message::write(std::ostream& out) const {
@@ -62,7 +54,7 @@ std::ostream& Message::write(std::ostream& out) const {
     out << header;
   out << "\r\n";
   if (body_)
-    out.write(body_, std::streamsize(body_size_));
+    out.write(body_.get(), std::streamsize(body_size_));
   return out;
 }
 

@@ -24,16 +24,15 @@ class Request : public Message {
  public:
   Request() = default;
   ~Request() override = default;
-  Request(const Request& other);
-  Request& operator=(const Request& rhs);
+  Request(Request&& other) noexcept = default;
+  Request& operator=(Request&& rhs) noexcept = default;
+
+  [[nodiscard]] Method getMethod() const;
+  [[nodiscard]] const std::string& getUri() const;
+  [[nodiscard]] HttpVersion getVersion() const;
+
+  [[nodiscard]] std::string getPath() const;
 
   bool setMessage(const std::string& msg);
-  Method getMethod() const;
-  const std::string& getUri() const;
-  void setUri(const std::string&);
-  const std::string getPath() const;
-  const char* getHeader(const std::string& key) const;
-  HttpVersion getVersion() const;
-  // todo: getVersion()? Are we ?
-
+  void setUri(const std::string& uri);
 };

@@ -8,8 +8,10 @@ Response::Response() {
   addHeader(WS::get_date_header());
 }
 Response::~Response() = default;
-Response::Response(const Response &other) = default;
-Response &Response::operator=(const Response &rhs) = default;
+Response::Response(Response &&other) noexcept {
+  message_ = std::move(other.message_);
+}
+Response &Response::operator=(Response &&rhs) noexcept = default;
 
 void Response::setMessage(int status) {
   message_ = "HTTP/1.1 " + std::to_string(status) + " " + http::getStatus(status) + "\r\n";

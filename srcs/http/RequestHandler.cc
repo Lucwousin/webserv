@@ -3,19 +3,6 @@
 #include "ErrorResponse.h"
 #include "Cases.h"
 
-RequestHandler::RequestHandler() = default;
-
-RequestHandler::RequestHandler(const Request& req) : request_(req) {}
-
-RequestHandler::RequestHandler(const RequestHandler&) {}
-
-RequestHandler::~RequestHandler() = default;
-
-RequestHandler& RequestHandler::operator=(const RequestHandler&)
-{
-  return (*this);
-}
-
 void  RequestHandler::execRequest()
 {
   switch (this->request_.getMethod())
@@ -62,4 +49,10 @@ void  RequestHandler::doPOST_()
   // file
   // dir
   // fail
+}
+bool RequestHandler::operator()(Connection& connection) {
+  return false;
+}
+void RequestHandler::onDone(Connection& connection) {
+
 }

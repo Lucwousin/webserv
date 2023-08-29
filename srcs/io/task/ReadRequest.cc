@@ -2,10 +2,13 @@
 #include "http/RequestHandler.h"
 #include "SendResponse.h"
 #include "http/ErrorResponse.h"
+#include "http/Header.h"
 #include <algorithm>
 
 // =========== ReadRequest ===========
-ReadRequest::ReadRequest(Request& req) : request_(req) {}
+ReadRequest::ReadRequest(Request&& req)
+  : request_(std::forward<Request>(req)) {}
+
 bool ReadRequest::operator()(Connection& connection) {
   ConnectionBuffer& buf = connection.getBuffer();
   if (state_ != BODY) {
@@ -30,11 +33,8 @@ bool ReadRequest::operator()(Connection& connection) {
 void ReadRequest::onDone(Connection& connection) {
   if (error_ != 0)
     connection.enqueueResponse(ErrorResponse(error_));
-  else {
-    RequestHandler rq(request_);
-    rq.execRequest();
-    connection.enqueueResponse(rq.getResponse());
-  }
+  else
+    RequestHandler(connection, std::move(request_));
   // else do something with what we learnt from the request
   // find correct route? read the body in a special way? That sounds mildly sexual
   if (connection.keepAlive())
@@ -77,58 +77,47 @@ bool ReadRequest::handle_msg(Connection& connection, std::string& line) {
 }
 
 
-
 bool ReadRequest::handle_header(Connection& connection, std::string& line) {
   Log::trace('[', connection.getSocket().get_fd(), "]\tH:\t", line);
   if (line.size() > WS::header_maxlen) {
     error_ = 431;
     return true;
   } else if (line == "\r\n" || line == "\n") {
+    Log::trace("headers terminated");
     state_ = BODY;
     return true;
   }
-
-  auto kvpair = split_header(line);
-  if (error_ != 0)
+  std::string_view key;
+  auto status = Header::getHeaderKey(line, key);
+  if (status == Header::ERROR) {
+    error_ = 400;
     return true;
-  auto hooks = hhooks_.equal_range(kvpair.first);
+  }
+  std::string_view val = Header::getHeaderValue(line, key.size());
+  static struct {
+    bool operator()(const header_lambda_map::value_type& a, const std::string_view& b) {
+      return Header::keyCompare(a.first, b) < 0;
+    }
+    bool operator()(const std::string_view& a, const header_lambda_map::value_type& b) {
+      return Header::keyCompare(a, b.first) < 0;
+    }
+  } cmp;
+  auto hooks = std::equal_range(hhooks_.begin(), hhooks_.end(), key, cmp);
   std::for_each(hooks.first, hooks.second,
                 [&](const header_lambda_map::value_type& v) {
-                  int err = v.second(*this, kvpair.second, connection);
+                  int err = v.second(*this, val, connection);
                   if (err != 0) error_ = err;
                 });
   request_.addHeader(line);
   return error_ != 0;
 }
 
-std::pair<std::string, std::string> ReadRequest::split_header(std::string& line) {
-  const size_t sep = line.find_first_of(':');
-  const size_t val_end = line.find_last_not_of(" \t\r\n");
-
-  if (sep == std::string::npos) {
-    size_t val_start = line.find_first_not_of(" \t");
-    if (val_start != 0 && val_start <= val_end) // Continuation needs ws in front
-      return std::make_pair(prev_key_, line.substr(val_start, val_end - val_start + 1));
-  } else {
-    size_t key_start = line.find_first_not_of(" \t");
-    size_t key_end = line.find_last_not_of(" \t", sep - 1);
-    size_t val_start = line.find_first_not_of(" \t", sep + 1);
-    if (key_start <= key_end && val_start <= val_end) {
-      std::transform(&line[key_start], &line[key_end + 1], &line[key_start], ::tolower);
-      return std::make_pair(line.substr(key_start, key_end - key_start + 1),
-                            line.substr(val_start, val_end - val_start + 1));
-    }
-  }
-  error_ = 400;
-  return {};
-}
-
 #define HEADER_HOOK(name, lambda) \
-{ name, [](ReadRequest& request, const std::string& value, Connection& connection)->int lambda }
+{ name, [](ReadRequest& request, const std::string_view& value, Connection& connection)->int lambda }
 const ReadRequest::header_lambda_map ReadRequest::hhooks_ = {
     HEADER_HOOK("connection", {
       (void) request;
-      if (strncasecmp(value.c_str(), "close", strlen("close")) == 0)
+      if (strncasecmp(value.data(), "close", strlen("close")) == 0)
         connection.setKeepAlive(false);
       return 0;
     }),

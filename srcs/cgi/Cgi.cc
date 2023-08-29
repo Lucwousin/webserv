@@ -7,16 +7,7 @@
 #include "util/WebServ.h"
 #include "http/ErrorResponse.h"
 #include "http/RequestHandler.h"
-
-static std::string st_find_header_value(const std::string& msg, const std::string& key)
-{
-  size_t start = msg.find(key) + key.length();
-  size_t i = 0;
-  while (!std::isspace(msg[start + i])) {
-    i++;
-  }
-  return msg.substr(start, i);
-}
+#include "http/Header.h"
 
 static void st_del_arr(char** arr)
 {
@@ -30,64 +21,14 @@ static void st_del_arr(char** arr)
   delete[] arr;
 }
 
-// make environment variables as specified in CGI RFC
-// some of them are missing due to not being required by subject
-static char** st_make_env(Request& req)
-{
-  static struct header_null_helper {
-    std::string operator()(const Request& req, const std::string& key) {
-      const char* header = req.getHeader(key);
-      return { header ? header : "" };
-    };
-  } head;
-  char** env = nullptr;
-  const std::string script = req.getPath().substr(0, req.getPath().find(".cgi") + 4);
-  std::array<std::string, 16> arr = {
-    std::string("AUTH_TYPE="),
-    std::string("CONTENT_LENGTH=") + head(req, "Content-Length"),
-    std::string("CONTENT_TYPE=") + head(req, "Content-Type"),
-    std::string("GATEWAY_INTERFACE=CGI/1.1"),
-    std::string("PATH_INFO=") + script,
-    std::string("PATH_TRANSLATED="), // root path_info based on confi
-    std::string("QUERY_STRING=") + req.getUri().substr(req.getUri().find('?') + 1),
-    std::string("REMOTE_ADDR=127.0.0.1"), // for now just hardcode localhost, ask lucas to pass the real thing
-    std::string("REMOTE_HOST=") + 
-      std::string(req.getHeader("Host") ? st_find_header_value(req.getHeader("Host"), "Host: ") : ""),
-    std::string("REMOTE_USER="), // not sure that we need this as we're not doing authentication?
-    std::string("REQUEST_METHOD=") + (req.getMethod() == Request::GET ? "GET" : "POST"),
-    std::string("SCRIPT_NAME=") + script,
-    std::string("SERVER_NAME=SuperWebserv10K/0.9.1 (Unix)"),
-    std::string("SERVER_PORT=6969"),
-    std::string("SERVER_PROTOCOL=HTTP/1.1"),
-    std::string("SERVER_SOFTWARE=SuperWebserv10K/0.9.1 (Unix)")
-  };
-  try {
-    env = new char*[arr.size() + 1];
-    env[arr.size()] = nullptr;
-    for (size_t i = 0; i < arr.size(); i++) {
-      env[i] = new char[arr[i].length() + 1];
-      arr[i].copy(env[i], arr[i].length());
-      env[i][arr[i].length()] = '\0';
-    }
-  }
-  catch (std::exception&) {
-    st_del_arr(env);
-    throw (ErrorResponse(500));
-  }
-  return (env);
-}
-
 Cgi::Cgi(Request& req) :
-    body_(req.getBody()),
+    body_(req.getBody().get()),
     path_("." + req.getPath().substr(0, req.getPath().find(".cgi") + 4)), // fix getPath() !!! (or confirm that it's working)
-    envp_(st_make_env(req)),
+    envp_(req, path_),
     pipe_in_(), pipe_out_()
 {}
 
-Cgi::~Cgi()
-{
-  st_del_arr(this->envp_);
-}
+Cgi::~Cgi() = default;
 
 // read from parent process on stdin
 // execute script
@@ -104,7 +45,7 @@ void Cgi::exec_child()
   close(this->pipe_out_[0]);
   close(this->pipe_out_[1]);
   char* argv[] = {nullptr};
-  execve(this->path_.c_str(), argv, this->envp_);
+  execve(this->path_.c_str(), argv, (char**)envp_.asArray().get());
   // if we get here execve failed
   Log::error("executing CGI `", this->path_, "' failed: ", strerror(errno), '\n');
   exit(1);
@@ -166,7 +107,7 @@ std::string Cgi::execute()
 }
 
 // function to process raw cgi document response into http response
-void Cgi::makeDocumentResponse(const std::string& raw, Response& res)
+void Cgi::makeDocumentResponse(std::string&& raw, Response& res)
 {
   size_t body_begin = HTTP::find_header_end(raw);
   // size_t body_begin = raw.find("\n\n");
@@ -183,7 +124,7 @@ void Cgi::makeDocumentResponse(const std::string& raw, Response& res)
   }
   raw.copy(dup, raw.length(), body_begin);
   res.setBody(dup, raw.length() - body_begin);
-  size_t substr_start = raw.find("Content-Type: ") + std::string("Content-Type: ").length();
+  size_t substr_start = raw.find("Content-Type: ") + "Content-Type: ".length();
   size_t substr_len = raw.find(';', substr_start) - substr_start; // spec does not specify ";" as delimiter?
   std::string content_type = raw.substr(substr_start, substr_len);
   res.addHeader("Server", "SuperWebserv10K/0.9.1 (Unix)");
@@ -194,9 +135,9 @@ void Cgi::makeDocumentResponse(const std::string& raw, Response& res)
 
 // function to process raw cgi local redirect response into http response
 // this function has not been tested at all!!!
-void Cgi::makeLocalRedirResponse(const std::string& raw, Response& res, Request& req)
+void Cgi::makeLocalRedirResponse(std::string&& raw, Response& res, Request& req)
 {
-  req.setUri(st_find_header_value(raw, "Location: "));
+  req.setUri(Header::get(raw, "Location: "));
   RequestHandler rh(req);
   rh.execRequest();
   res = rh.getResponse();

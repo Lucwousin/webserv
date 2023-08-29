@@ -1,19 +1,5 @@
 #include "Request.h"
 
-Request::Request(const Request& other) : Message(other) {
-  method_ = other.method_;
-  uri_ = other.uri_;
-}
-
-Request& Request::operator=(const Request& rhs) {
-  if (this == &rhs)
-    return *this;
-  Message::operator=(rhs);
-  method_ = rhs.method_;
-  uri_ = rhs.uri_;
-  return *this;
-}
-
 static bool next_word(std::string& word, const std::string& str, size_t& end) {
   size_t start = str.find_first_not_of(" \t\r\n", end);
   if (start == std::string::npos)
@@ -61,17 +47,8 @@ void Request::setUri(const std::string& uri) {
   this->uri_ = uri;
 }
 
-const std::string Request::getPath() const {
+std::string Request::getPath() const {
   return (uri_.substr(uri_.find('/'), uri_.find('?')));
-}
-
-const char* Request::getHeader(const std::string& key) const {
-  for (const auto& elem : headers_) {
-    if (elem.find(key) != std::string::npos) {
-      return (elem.c_str());
-    }
-  }
-  return nullptr;
 }
 
 Request::HttpVersion Request::getVersion() const {
