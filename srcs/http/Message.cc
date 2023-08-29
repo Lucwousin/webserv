@@ -1,8 +1,9 @@
 #include "Message.h"
-#include "Header.h"
 
-#include <ostream>
 #include <cstring>
+#include <ostream>
+
+#include "Header.h"
 
 const std::string& Message::getMessage() const {
   return message_;

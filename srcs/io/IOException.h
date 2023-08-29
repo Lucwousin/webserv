@@ -8,10 +8,8 @@ class IOException : public std::exception {
   std::string msg_;
 
  public:
-  explicit IOException(std::string msg) : msg_(std::move(msg)) {};
-  IOException(const std::string& msg, int err) {
-    msg_ = msg + ": " + std::strerror(err) + '\n';
-  }
+  explicit IOException(std::string msg) : msg_(std::move(msg)){};
+  IOException(const std::string& msg, int err) { msg_ = msg + ": " + std::strerror(err) + '\n'; }
   IOException(const IOException& other) noexcept : msg_(other.msg_) {}
   ~IOException() noexcept override = default;
   IOException() = delete;

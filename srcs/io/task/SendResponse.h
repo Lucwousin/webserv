@@ -19,6 +19,7 @@ class SendResponse : public OTask {
 
  protected:
   virtual std::unique_ptr<OTask> getBodyTask() const = 0;
+
  public:
   explicit SendResponse(Response&& response);
   bool operator()(Connection& connection) override;
@@ -27,8 +28,5 @@ class SendResponse : public OTask {
 
 class SendErrorResponse : public SendResponse {
  public:
-  explicit SendErrorResponse(int status) noexcept
-    : SendResponse(ErrorResponse(status)){
-
-  }
+  explicit SendErrorResponse(int status) noexcept : SendResponse(ErrorResponse(status)) {}
 };

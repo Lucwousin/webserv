@@ -4,8 +4,7 @@
 
 class SpliceIn : public ITask {
  public:
-  SpliceIn(Connection& connection, int fd, size_t size)
-    : conn_(connection), pipe_fd_(fd), remaining_(size) {}
+  SpliceIn(Connection& connection, int fd, size_t size) : conn_(connection), pipe_fd_(fd), remaining_(size) {}
   ~SpliceIn() { close(pipe_fd_); }
 
   bool operator()(Connection& connection) override {
@@ -25,12 +24,9 @@ class SpliceIn : public ITask {
       connection.getQueue().del(connection.getSocket().get_fd(), EventQueue::in);
     return done() || !pipe_rdy_;
   }
-  bool done() override {
-    return remaining_ == 0;
-  }
-  void onDone(Connection& connection) override {
+  bool done() override { return remaining_ == 0; }
+  void onDone(Connection& connection) override {}
 
-  }
  private:
   Connection& conn_;
   int pipe_fd_;

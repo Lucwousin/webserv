@@ -36,27 +36,25 @@ static inline std::string get_date_header() {
   char out[date_header_len] = {};
   time_t time = std::time(nullptr);
   std::strftime(out, date_header_len, "date: %a, %d %b %Y %T GMT\r\n", gmtime(&time));
-  return { out, date_header_len - 1 };
+  return {out, date_header_len - 1};
 }
 }  // namespace WS
 
 namespace HTTP {
-  // iT's A cOoPeRaTiVe PrOtOcOl!!1!
-  inline size_t find_header_end(const std::string& str)
-  {
-    size_t nn = str.find("\n\n");
-    size_t rn = str.find("\r\n\r\n");
-    return (std::min(nn, rn));
-  }
-
-  inline void prepend_cwd(std::string& str)
-  {
-    char* cwd;
-    cwd = getcwd(nullptr, 0);
-    if (cwd == nullptr) {
-      throw (ErrorResponse(500)); // maybe returning null would be a bit less agressive?
-    }
-    str.insert(0, cwd);
-    free(cwd);
-  }
+// iT's A cOoPeRaTiVe PrOtOcOl!!1!
+inline size_t find_header_end(const std::string& str) {
+  size_t nn = str.find("\n\n");
+  size_t rn = str.find("\r\n\r\n");
+  return (std::min(nn, rn));
 }
+
+inline void prepend_cwd(std::string& str) {
+  char* cwd;
+  cwd = getcwd(nullptr, 0);
+  if (cwd == nullptr) {
+    throw(ErrorResponse(500));  // maybe returning null would be a bit less agressive?
+  }
+  str.insert(0, cwd);
+  free(cwd);
+}
+}  // namespace HTTP

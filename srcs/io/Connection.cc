@@ -1,9 +1,9 @@
 #include "Connection.h"
 
+#include "http/ErrorResponse.h"
 #include "io/task/IOTask.h"
 #include "io/task/ReadRequest.h"
 #include "io/task/SendResponse.h"
-#include "http/ErrorResponse.h"
 
 Connection::Connection(int fd, EventQueue& event_queue, BufferPool<>& buf_mgr)
     : socket_(fd), buffer_(buf_mgr), event_queue_(event_queue) {
@@ -55,7 +55,7 @@ WS::IOStatus Connection::handleIn() {
   while (!iqueue_.empty()) {
     if (buffer_.readFailed()) {
       if (status == WS::IO_WAIT)
-        return status; // We've already read all we can
+        return status;  // We've already read all we can
       status = buffer_.readIn(socket_);
       if (status == WS::IO_FAIL)
         return status;
@@ -114,8 +114,8 @@ void Connection::shutdown() {
 }
 
 void Connection::awaitRequest() {
-  //todo: rename ReadRequest RequestReader and make class var instead of the request itself?
-  //  will we still need the RequestReader while writing output?
+  // todo: rename ReadRequest RequestReader and make class var instead of the request itself?
+  //   will we still need the RequestReader while writing output?
   addTask(std::make_unique<ReadRequest>());
 }
 
@@ -137,7 +137,7 @@ void Connection::enqueueResponse(Response&& response) {
 void Connection::timeout() {
   Log::debug('[', socket_.get_fd(), "] Timed out\n");
   keep_alive_ = false;
-  request_count_ = 0; // so we don't get 2 log messages
+  request_count_ = 0;  // so we don't get 2 log messages
   enqueueResponse(ErrorResponse(408));
 }
 

@@ -1,6 +1,6 @@
 #pragma once
-#include <set>
 #include <chrono>
+#include <set>
 #include <unordered_map>
 
 #include "config/Config.h"
@@ -24,7 +24,7 @@ class Server {
   // request perfectly so maybe another map for that?
   // std::multiset<VServer, std::less<VServer> > vservers_;
 
-  using timep_t =  std::chrono::time_point<std::chrono::system_clock>;
+  using timep_t = std::chrono::time_point<std::chrono::system_clock>;
   timep_t last_purge_;
 
   void accept_connection(const EventQueue::event_t& event);

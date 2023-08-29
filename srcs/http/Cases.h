@@ -1,7 +1,8 @@
 #ifndef CASES_H
 #define CASES_H
-#include <vector>
 #include <memory>
+#include <vector>
+
 #include "ACase.h"
 #include "Request.h"
 #include "io/task/DiscardBody.h"
@@ -45,7 +46,7 @@ class CaseFail : public ACase {
   std::unique_ptr<OTask> getResponse(RequestInfo& ri) const override;
   std::unique_ptr<ITask> bodyReader(RequestInfo& ri) const override;
 };
-};
+};  // namespace get
 
 class Cases {
  public:
@@ -55,17 +56,15 @@ class Cases {
   typedef std::vector<std::unique_ptr<ACase> >::const_iterator citerator;
   citerator cbegin() const;
   citerator cend() const;
-  size_t    size() const;
-  ACase&    operator[](size_t n) const;
+  size_t size() const;
+  ACase& operator[](size_t n) const;
 
  protected:
   std::vector<std::unique_ptr<ACase> > cases_;
 
  private:
-  Cases(const Cases&); // = delete
-  Cases& operator=(const Cases&); // delete
-
-
+  Cases(const Cases&);             // = delete
+  Cases& operator=(const Cases&);  // delete
 };
 
 class CasesGET : public Cases {
@@ -104,6 +103,6 @@ static constexpr ACase& getCase(Type type) {
 
 constexpr auto& get = instance.get_instance;
 constexpr auto& post = instance.post_instance;
-}
+}  // namespace Case
 
 #endif

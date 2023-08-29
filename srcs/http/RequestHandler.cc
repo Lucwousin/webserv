@@ -1,12 +1,12 @@
-#include <exception>
 #include "RequestHandler.h"
-#include "ErrorResponse.h"
-#include "Cases.h"
 
-void  RequestHandler::execRequest()
-{
-  switch (this->request_.getMethod())
-  {
+#include <exception>
+
+#include "Cases.h"
+#include "ErrorResponse.h"
+
+void RequestHandler::execRequest() {
+  switch (this->request_.getMethod()) {
     case (Request::GET):
       this->doGET_();
       break;
@@ -14,19 +14,17 @@ void  RequestHandler::execRequest()
       this->doPOST_();
       break;
     default:
-      throw (ErrorResponse(400));
+      throw(ErrorResponse(400));
       break;
   }
 }
 
-Response&& RequestHandler::getResponse()
-{
+Response&& RequestHandler::getResponse() {
   return std::move(this->response_);
 }
 
-void  RequestHandler::doGET_()
-{
-  // call config method to 
+void RequestHandler::doGET_() {
+  // call config method to
   // mod path if necessary
   // check if upload allowed if applicable
   // accepted method for route
@@ -41,8 +39,7 @@ void  RequestHandler::doGET_()
   }
 }
 
-void  RequestHandler::doPOST_()
-{
+void RequestHandler::doPOST_() {
   // cases:
   // redirect
   // no file
@@ -53,6 +50,4 @@ void  RequestHandler::doPOST_()
 bool RequestHandler::operator()(Connection& connection) {
   return false;
 }
-void RequestHandler::onDone(Connection& connection) {
-
-}
+void RequestHandler::onDone(Connection& connection) {}

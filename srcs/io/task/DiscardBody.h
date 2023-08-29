@@ -4,7 +4,7 @@
 
 class DiscardBody : public ITask {
  public:
-  explicit DiscardBody(size_t n) : remaining_(n) {};
+  explicit DiscardBody(size_t n) : remaining_(n){};
 
   bool operator()(Connection& connection) override {
     remaining_ -= connection.getBuffer().discard(remaining_);

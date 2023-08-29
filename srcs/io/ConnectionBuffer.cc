@@ -49,11 +49,9 @@ ConnectionBuffer& ConnectionBuffer::getline(std::string& str) {
 
   for (auto buf_iter = i_bufs_.begin(); buf_iter != i_bufs_.end(); ++buf_iter) {
     bool first = buf_iter == i_bufs_.begin();
-    bool last  = buf_iter == std::prev(i_bufs_.end());
+    bool last = buf_iter == std::prev(i_bufs_.end());
 
-    auto buf_view = buf_iter->getView(
-        first ? i_offset_ : 0,
-        last ? toBuffer(i_end_) : std::string::npos);
+    auto buf_view = buf_iter->getView(first ? i_offset_ : 0, last ? toBuffer(i_end_) : std::string::npos);
     size_t newline = buf_view.find('\n');
 
     offs += std::min(newline, buf_view.size());
@@ -88,7 +86,8 @@ std::string ConnectionBuffer::get_str(size_t len) {
     auto view = i_bufs_.front().getView(i_offset_, len);
     auto to_get = std::min(len, view.size());
     str.replace(pos, len, view);
-    pos += to_get; len -= to_get;
+    pos += to_get;
+    len -= to_get;
     i_offset_ += to_get;
     if (i_offset_ >= size_)
       pop_inbuf();
@@ -191,7 +190,8 @@ void ConnectionBuffer::writeTo(int fd, size_t& remaining) {
     ssize_t written = write(fd, &buf.at(i_offset_), to_write);
     if (written == -1)
       throw IOException("That's messed up");
-    i_offset_ += written; remaining -= written;
+    i_offset_ += written;
+    remaining -= written;
     if (i_offset_ == size_ || i_offset_ == i_end_)
       pop_inbuf();
   }

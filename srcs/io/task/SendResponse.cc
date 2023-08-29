@@ -1,8 +1,7 @@
 #include "SendResponse.h"
 
 SendResponse::SendResponse(Response&& response)
-  : response_(std::forward<Response>(response)),
-    header_(response_.getHeaders().begin()) {}
+    : response_(std::forward<Response>(response)), header_(response_.getHeaders().begin()) {}
 
 bool SendResponse::operator()(Connection& connection) {
   while (!connection.getBuffer().needWrite()) {

@@ -5,8 +5,8 @@
 #include <sys/event.h>
 #endif
 
-#include <vector>
 #include <ostream>
+#include <vector>
 
 #include "Socket.h"
 
@@ -46,7 +46,7 @@ class EventQueue {
       epoll_ctl(q.queue_fd_, EPOLL_CTL_DEL, fd, nullptr);
     }
     static inline event_t create_event(int fd, filt_t direction) {
-      return {.events = direction | r_hup, .data = { .fd = fd } };
+      return {.events = direction | r_hup, .data = {.fd = fd}};
     }
     static inline int getFileDes(const event_t& ev) {
       return ev.data.fd;
@@ -70,7 +70,7 @@ class EventQueue {
 
     static constexpr filt_t in = EVFILT_READ;
     static constexpr filt_t out = EVFILT_WRITE;
-    static constexpr filt_t both = 0; // Not actually supported by kqueue, hacky
+    static constexpr filt_t both = 0;  // Not actually supported by kqueue, hacky
     static constexpr flag_t err = EV_ERROR;
     static constexpr flag_t w_hup = EV_EOF;
     static constexpr flag_t r_hup = w_hup;
@@ -115,19 +115,18 @@ class EventQueue {
     }
     static inline std::ostream& printEvent(std::ostream& stream, const event_t& ev) {
       return stream << '[' << getFileDes(ev) << "]\tEvent"
-                    << "\tFilter: " << ev.filter
-                    << "\tFlags: " << ev.flags
-                    << "\tFFlags: " << ev.fflags
+                    << "\tFilter: " << ev.filter << "\tFlags: " << ev.flags << "\tFFlags: " << ev.fflags
                     << "\tData: " << ev.data << '\n';
     }
     static inline void wait(EventQueue& q) {
       if (!q.changelist_.empty()) {
         Log::trace("Event Changelist:\n");
         for (auto& e : q.changelist_)
-          Log::trace("fd: ", e.ident, ", direction: ", e.filter == in ? "in, " : "out, ", "flags: ", e.flags, '\n');
+          Log::trace("fd: ", e.ident, ", direction: ", e.filter == in ? "in, " : "out, ", "flags: ", e.flags,
+                     '\n');
       }
-      q.event_count_ = kevent(q.queue_fd_, q.changelist_.data(), (int)q.changelist_.size(),
-                              q.events_, MAX_EVENTS, nullptr);
+      q.event_count_ = kevent(q.queue_fd_, q.changelist_.data(), (int)q.changelist_.size(), q.events_,
+                              MAX_EVENTS, nullptr);
       q.changelist_.clear();
       // Todo: check why this happens to begin with?
       // This happens when the only errors had to do with changing the event list
@@ -154,8 +153,8 @@ class EventQueue {
   static constexpr filt_t out = Platform::out;
   static constexpr filt_t both = Platform::both;
   static constexpr flag_t err = Platform::err;
-  static constexpr flag_t w_hup = Platform::w_hup; // Connection is completely closed
-  static constexpr flag_t r_hup = Platform::r_hup; // Peer closed their side of connection
+  static constexpr flag_t w_hup = Platform::w_hup;  // Connection is completely closed
+  static constexpr flag_t r_hup = Platform::r_hup;  // Peer closed their side of connection
 
   /**
    * Add a new file descriptor we want events for

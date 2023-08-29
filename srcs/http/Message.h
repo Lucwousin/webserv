@@ -1,10 +1,10 @@
 #pragma once
 
+#include <list>
+#include <memory>
+#include <set>
 #include <string>
 #include <vector>
-#include <memory>
-#include <list>
-#include <set>
 
 class Message {
  public:
