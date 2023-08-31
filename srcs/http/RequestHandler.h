@@ -6,8 +6,8 @@
 
 class RequestHandler {
  public:
-    RequestHandler(Connection& connection, const ConfigServer& cfg, Request& req)
-      : connection_(connection), cfg_(cfg), request_(req) {}
+  RequestHandler(Connection& connection, const ConfigServer& cfg, Request& req)
+    : connection_(connection), cfg_(cfg), request_(req) {}
   ~RequestHandler() = default;
   RequestHandler(const RequestHandler& that) = delete;
   RequestHandler& operator=(const RequestHandler& that) = delete;
@@ -15,10 +15,11 @@ class RequestHandler {
   Response&& getResponse();
 
  private:
-    static const size_t buffer_size_ = 512;
-    Connection& connection_;
+  using stat_t = struct stat;
+  static const size_t buffer_size_ = 512;
+  Connection& connection_;
 
-    const ConfigServer& cfg_;
+  const ConfigServer& cfg_;
   const Request&   request_;
   Response  response_;
 
@@ -27,7 +28,8 @@ class RequestHandler {
   bool legalMethod_() const;
   bool isRedirect_() const;
   void handleDir_(std::string& path);
-  void handleFile_(std::string& path);
+  void handleFile_(stat_t& file_info, std::string& path);
+  void handleError_(int err);
   void autoIndex_(std::string& path);
 };
 
